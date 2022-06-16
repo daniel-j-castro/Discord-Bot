@@ -13,6 +13,7 @@ const client = new DiscordJS.Client({
 
 client.on('ready', () => {
     console.log('The bot is on!');
+    console.log('Have Fun!');
 });
 
 client.on('messageCreate', (message) => {
