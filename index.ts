@@ -1,5 +1,6 @@
 import DiscordJS, { Intents } from 'discord.js';
 import dotenv from 'dotenv';
+import mongoose from 'mongoose';
 
 dotenv.config()
 
@@ -11,79 +12,32 @@ const client = new DiscordJS.Client({
     ]
 });
 
-client.on('ready', () => {
+client.on('ready', async () => {
+
+    await mongoose.connect(process.env.MONGO_URI || '', 
+    { 
+        keepAlive: true,
+        dbName: 'discord-bot',
+    }).then(() => {
+        console.log('connected to server')
+    }).catch(err => {
+        console.log('could not connect to the database...', err)
+    })
+
+    let handler = require('./command-handler');
+    if(handler.default) handler = handler.default
+
+    handler(client)
+
+    let logger = require('./message-log');
+    if(logger.default) logger = logger.default
+
+    logger(client)
+
     console.log('The bot is on!');
     console.log('Have Fun!');
 
-    const guildID = '796199760264298547';
-    const guild = client.guilds.cache.get(guildID);
-    let commands;
-    if (guild){
-        commands = guild.commands;
-    }
-    else{
-        commands = client.application?.commands;
-    }
-
-    commands?.create({
-        name: 'ping',
-        description: 'Replies with pong.',
-    });
-
-    commands?.create({
-        name: 'add',
-        description: 'Adds two numbers.',
-        options: [
-            {
-                name: 'num1',
-                description: 'The first number.',
-                required: true,
-                type: DiscordJS.Constants.ApplicationCommandOptionTypes.NUMBER,
-            },
-            {
-                name: 'num2',
-                description: 'The second number.',
-                required: true,
-                type: DiscordJS.Constants.ApplicationCommandOptionTypes.NUMBER,
-            }
-        ],
-    });
-});
-
-client.on('interactionCreate', async (interaction) => {
-    if(!interaction.isCommand()){
-        return;
-    }
-    const {commandName, options} = interaction;
-
-    if(commandName === 'ping'){
-        interaction.reply({
-            content: 'pong',
-            ephemeral: false,
-        });
-    }
-    else if (commandName === 'add'){
-        const num1 = options.getNumber('num1')!;
-        const num2 = options.getNumber('num2')!;
-        
-        await interaction.deferReply({
-           ephemeral: false 
-        });
-
-        await new Promise(resolve => setTimeout(resolve, 5000));
-
-        interaction.editReply({
-            content: `The sum is ${num1 + num2}`,
-        });
-    }
-});
-
-client.on('messageCreate', (message) => {
-    if (message.content === 'ping'){
-        message.reply({
-            content: "Pong!",
-        });
-    }
+   
 });
 
 client.login(process.env.TOKEN);
